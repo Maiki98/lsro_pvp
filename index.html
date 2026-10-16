@@ -59,7 +59,7 @@ body.is-authenticated #cloudLogoutButton{display:inline-block}
     <button class="tab active" data-view="players">Players</button>
     <button class="tab" data-view="bracket" id="tournamentTab">Tournament</button>
     <button class="tab" data-view="rules">Rules</button>
-     <button class="tab" type="button" id="cloudLogoutButton" onclick="cloudAuth.signOut()" style="margin-left:auto">Sign out</button>
+     <button class="tab" type="button" id="cloudLogoutButton" onclick="document.getElementById('cloudLogin').style.display='flex'; cloudAuth.signOut()" style="margin-left:auto">Sign out</button>
   </nav>
 </header>
 <main>
@@ -159,10 +159,20 @@ cloudAuth.onAuthStateChanged(async user=>{
  try {
   const ref=cloudDb.collection('tournaments').doc('shared-roster');
   const snap=await ref.get();
+
+  // Ignore a stale request if the user signed out or switched accounts.
+  if(!cloudAuth.currentUser || cloudAuth.currentUser.uid !== user.uid) return;
+
   if(snap.exists && Array.isArray(snap.data().players)) players=snap.data().players;
   else if(currentUserRole === 'admin') await ref.set({players:players,updatedAt:firebase.firestore.FieldValue.serverTimestamp(),updatedBy:user.uid});
-  cloudReady=true; login.style.display='none'; render();
+
+  // Check again after awaited operations before hiding the login screen.
+  if(!cloudAuth.currentUser || cloudAuth.currentUser.uid !== user.uid) return;
+  cloudReady=true;
+  login.style.display='none';
+  render();
  } catch(e){
+  if(!cloudAuth.currentUser || cloudAuth.currentUser.uid !== user.uid) return;
   login.style.display='flex'; const msg=document.getElementById('cloudLoginMessage');
   msg.textContent='Login feito, mas não consegui acessar o banco. Verifique as regras do Firestore. ('+e.code+')';
  }
