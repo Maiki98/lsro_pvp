@@ -44,10 +44,10 @@ body.is-authenticated #cloudLogoutButton{display:inline-block}
 <body>
 <div id="cloudLogin" style="position:fixed;z-index:99999;inset:0;background:#050609;display:flex;align-items:center;justify-content:center;padding:24px;font-family:Inter,Segoe UI,Arial,sans-serif">
  <form onsubmit="cloudLoginSubmit(event)" style="width:min(420px,100%);background:#131820;border:1px solid #2b3442;border-radius:16px;padding:28px;color:#f2f5f8">
-  <h1 style="margin:0 0 8px;color:#e6b84d">LSRO PVP</h1><p style="color:#8f9aaa;margin:0 0 20px">Entre para acessar o torneio compartilhado.</p>
-  <label style="display:block;margin:12px 0 6px">E-mail</label><input id="cloudEmail" type="email" autocomplete="username" required style="width:100%;padding:12px;border-radius:8px;border:1px solid #2b3442;background:#0b0e13;color:#fff">
-  <label style="display:block;margin:12px 0 6px">Senha</label><input id="cloudPassword" type="password" autocomplete="current-password" required style="width:100%;padding:12px;border-radius:8px;border:1px solid #2b3442;background:#0b0e13;color:#fff">
-  <button id="cloudLoginButton" type="submit" style="margin-top:18px;width:100%;padding:12px;background:#e6b84d;border:0;border-radius:8px;font-weight:700;cursor:pointer">Entrar</button>
+  <h1 style="margin:0 0 8px;color:#e6b84d">LSRO PVP</h1><p style="color:#8f9aaa;margin:0 0 20px">Sign in to access the shared tournament.</p>
+  <label style="display:block;margin:12px 0 6px">Email</label><input id="cloudEmail" type="email" autocomplete="username" required style="width:100%;padding:12px;border-radius:8px;border:1px solid #2b3442;background:#0b0e13;color:#fff">
+  <label style="display:block;margin:12px 0 6px">Password</label><input id="cloudPassword" type="password" autocomplete="current-password" required style="width:100%;padding:12px;border-radius:8px;border:1px solid #2b3442;background:#0b0e13;color:#fff">
+  <button id="cloudLoginButton" type="submit" style="margin-top:18px;width:100%;padding:12px;background:#e6b84d;border:0;border-radius:8px;font-weight:700;cursor:pointer">Sign In</button>
   <p id="cloudLoginMessage" role="status" style="color:#e66b6b;white-space:pre-wrap"></p>
  </form>
 </div>
@@ -138,10 +138,10 @@ async function cloudLoginSubmit(event){
  event.preventDefault();
  const msg=document.getElementById('cloudLoginMessage');
  const btn=document.getElementById('cloudLoginButton');
- msg.style.color='#e66b6b'; msg.textContent=''; btn.disabled=true; btn.textContent='Entrando…';
+ msg.style.color='#e66b6b'; msg.textContent=''; btn.disabled=true; btn.textContent='Signing In…';
  try { await cloudAuth.signInWithEmailAndPassword(document.getElementById('cloudEmail').value.trim(),document.getElementById('cloudPassword').value); }
- catch(e){ msg.textContent='Não foi possível entrar. Confira e-mail/senha e se o método E-mail/senha está ativado no Firebase. ('+e.code+')'; }
- finally {btn.disabled=false;btn.textContent='Entrar';}
+ catch(e){ msg.textContent='Unable to sign in. Check your email/password and make sure the Email/Password sign-in method is enabled in Firebase. ('+e.code+')'; }
+ finally {btn.disabled=false;btn.textContent='Sign In';}
 }
 cloudAuth.onAuthStateChanged(async user=>{
  const login=document.getElementById('cloudLogin');
@@ -155,7 +155,7 @@ cloudAuth.onAuthStateChanged(async user=>{
  applyUserRole(user);
  if(currentUserRole === 'unauthorized') return;
  document.getElementById('cloudLoginMessage').style.color='#53d18b';
- document.getElementById('cloudLoginMessage').textContent='Conectando ao torneio…';
+ document.getElementById('cloudLoginMessage').textContent='Connecting to the tournament…';
  try {
   const ref=cloudDb.collection('tournaments').doc('shared-roster');
   const snap=await ref.get();
@@ -174,7 +174,7 @@ cloudAuth.onAuthStateChanged(async user=>{
  } catch(e){
   if(!cloudAuth.currentUser || cloudAuth.currentUser.uid !== user.uid) return;
   login.style.display='flex'; const msg=document.getElementById('cloudLoginMessage');
-  msg.textContent='Login feito, mas não consegui acessar o banco. Verifique as regras do Firestore. ('+e.code+')';
+  msg.textContent='Signed in, but unable to access the database. Check the Firestore rules. ('+e.code+')';
  }
 });
 </script>
