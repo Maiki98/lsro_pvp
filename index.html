@@ -224,13 +224,11 @@ function addPlayer(){players.push({name:'Novo Player',build:'',honors:[]});save(
 function removePlayer(i){if(confirm('Delete this player?')){players.splice(i,1);save();render();}}
 
 function isChinese(build){
-  // Strict roster classification. Some roster entries contain the common typo
-  // [0m'Glavie' instead of 'Glaive'; treat both spellings as CHINESE.
-  const b=String(build||'').normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g,' ');
-  const tokens=b.split(/\s+/).filter(Boolean);
-  return tokens.some(t => ['bow','blade','glaive','glavie','glave','glaiv','glavi','spear','sword','ss'].includes(t))
-    || /gla[i|v]ve/.test(b)
-    || b.includes('glaive') || b.includes('glavie') || b.includes('blade') || b.includes('bow') || b.includes('spear') || b.includes('sword');
+  // Weapon keywords always determine the Chinese division, regardless of
+  // secondary skills, honors, capitalization, or separators in the build name.
+  const b=String(build||'').normalize('NFKC').toLowerCase();
+  return /(^|[^a-z0-9])(bow|blade|glaive|glavie|glave|glaiv|glavi|spear|sword|ss)(?=$|[^a-z0-9])/.test(b)
+    || /gla[i|v]ve/.test(b);
 }
 
 function buildType(build){
@@ -254,15 +252,6 @@ function matchupPriority(p,q){
   return 0;
 }
 
-function isChinese(build){
-  // Strict roster classification. Some roster entries contain the common typo
-  // [0m'Glavie' instead of 'Glaive'; treat both spellings as CHINESE.
-  const b=String(build||'').normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g,' ');
-  const tokens=b.split(/\s+/).filter(Boolean);
-  return tokens.some(t => ['bow','blade','glaive','glavie','glave','glaiv','glavi','spear','sword','ss'].includes(t))
-    || /gla[i|v]ve/.test(b)
-    || b.includes('glaive') || b.includes('glavie') || b.includes('blade') || b.includes('bow') || b.includes('spear') || b.includes('sword');
-}
 function buildType(build){
   const b=(build||'').toLowerCase();
   if(b.includes('warrior / cleric')) return 'warrior_cleric';
