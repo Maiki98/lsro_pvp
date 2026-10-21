@@ -228,9 +228,9 @@ function isChinese(build){
   // [0m'Glavie' instead of 'Glaive'; treat both spellings as CHINESE.
   const b=String(build||'').normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g,' ');
   const tokens=b.split(/\s+/).filter(Boolean);
-  return tokens.some(t => ['bow','blade','glaive','glavie','glave','glaiv','glavi'].includes(t))
+  return tokens.some(t => ['bow','blade','glaive','glavie','glave','glaiv','glavi','spear','sword','ss'].includes(t))
     || /gla[i|v]ve/.test(b)
-    || b.includes('glaive') || b.includes('glavie') || b.includes('blade') || b.includes('bow');
+    || b.includes('glaive') || b.includes('glavie') || b.includes('blade') || b.includes('bow') || b.includes('spear') || b.includes('sword');
 }
 
 function buildType(build){
@@ -259,9 +259,9 @@ function isChinese(build){
   // [0m'Glavie' instead of 'Glaive'; treat both spellings as CHINESE.
   const b=String(build||'').normalize('NFKC').toLowerCase().replace(/[^a-z0-9]+/g,' ');
   const tokens=b.split(/\s+/).filter(Boolean);
-  return tokens.some(t => ['bow','blade','glaive','glavie','glave','glaiv','glavi'].includes(t))
+  return tokens.some(t => ['bow','blade','glaive','glavie','glave','glaiv','glavi','spear','sword','ss'].includes(t))
     || /gla[i|v]ve/.test(b)
-    || b.includes('glaive') || b.includes('glavie') || b.includes('blade') || b.includes('bow');
+    || b.includes('glaive') || b.includes('glavie') || b.includes('blade') || b.includes('bow') || b.includes('spear') || b.includes('sword');
 }
 function buildType(build){
   const b=(build||'').toLowerCase();
@@ -286,7 +286,7 @@ function divisionLabel(div){ return div==='CH' ? 'CHINESE' : 'EUROPEAN'; }
 
 function makePoolMatches(list, division){
   // HARD DIVISION LOCK: discard any player whose build does not belong to this pool.
-  // Glaive, Bow and Blade are always Chinese, regardless of honors or other skills.
+  // Glaive, Bow, Blade, Spear, Sword and SS are always Chinese, regardless of honors or other skills.
   let remaining=list.filter(p => divisionOf(p) === division), out=[];
   if(remaining.length===0) return out;
   if(remaining.length===1){
