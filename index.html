@@ -73,7 +73,7 @@ body.is-authenticated #cloudLogoutButton{display:inline-block}
 
 <section id="bracket" class="view">
   <div class="toolbar"><div><h2>Bracket</h2><div class="note">CH and EURO are two completely separate tournaments. CH players only face CH players, EURO players only face EURO players. If either tournament has an odd number of players, its 3 lowest Honor Score players enter its own Lucky Critical. No player receives a BYE.</div></div>
-  <button class="btn primary tournament-admin-only" onclick="generateBracket()">Regenerate Round 1</button></div>
+  <button class="btn primary tournament-admin-only" onclick="generateBracket()">Regenerate Phase 1</button></div>
   <div id="bracketArea"></div>
 </section>
 
@@ -244,9 +244,9 @@ function exportTournamentData(){
    lines.push('No matchmaking generated yet.');
  }else{
    roundNumbers.forEach(r=>{
-     lines.push(`ROUND ${r}`);
+     lines.push(`PHASE ${r}`);
      const matches=rounds[r]||[];
-     if(!matches.length) lines.push('No matches in this round.');
+     if(!matches.length) lines.push('No matches in this phase.');
      matches.forEach((m,i)=>{
        const division=divisionLabel(m.division);
        const status=m.winner?` | Winner: ${m.winner}`:' | Pending';
@@ -487,7 +487,7 @@ function getPhasePlayerRefs(r){
   return refs;
 }
 function toggleSwapMode(r){
-  if(phaseHasResults(r)){alert('Finish or regenerate this round before swapping players.');return;}
+  if(phaseHasResults(r)){alert('Finish or regenerate this phase before swapping players.');return;}
   swapMode[r]=!swapMode[r];
   swapSelection[r]=null;
   renderBracket();
@@ -587,7 +587,7 @@ function matchHTML(m,i,r){
 }
 function renderRound(r,title){
  const ms=rounds[r]||[];
- if(!ms.length)return `<div class="card"><h2>${title}</h2><div class="empty">Waiting for winners from the previous round.</div></div>`;
+ if(!ms.length)return `<div class="card"><h2>${title}</h2><div class="empty">Waiting for winners from the previous phase.</div></div>`;
  const active=!!swapMode[r];
  const help=active ? (swapSelection[r] ? 'Now click the second player to swap their positions.' : 'Click two players from the SAME tournament to swap them.') : 'Do not like the generated pairings? Enable swapping and select two players from the same tournament.';
  const groups=[['CH','CHINESE TOURNAMENT'],['EURO','EUROPEAN TOURNAMENT']];
@@ -603,7 +603,7 @@ function renderBracket(){
  // New phases are created by setWinner() only after the previous phase is
  // completely resolved, and this renderer displays all of them.
  const roundNumbers=Object.keys(rounds).map(Number).filter(n=>n>=1).sort((a,b)=>a-b);
- a.innerHTML=roundNumbers.map(r=>renderRound(r,`ROUND ${r}`)).join('');
+ a.innerHTML=roundNumbers.map(r=>renderRound(r,`PHASE ${r}`)).join('');
 }
 
 let fireworksAnim=null;
