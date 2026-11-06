@@ -65,7 +65,7 @@ body.is-authenticated #cloudLogoutButton{display:inline-block}
 <main>
 <section id="players" class="view active">
   <div class="toolbar"><div><h2>Players</h2><div class="note">Select 1, 2, or all 3 Honors. The score is calculated automatically.</div></div>
-  <div><button class="btn" id="addPlayerButton" onclick="addPlayer()">+ Player</button><button class="btn primary tournament-admin-only" onclick="generateBracket()">Generate / update tournament</button></div></div>
+  <div><button class="btn" id="addPlayerButton" onclick="addPlayer()">+ Player</button><button class="btn" onclick="exportTournamentData()">Export data</button><button class="btn primary tournament-admin-only" onclick="generateBracket()">Generate / update tournament</button></div></div>
   <div class="stats" id="stats"></div>
   <div class="card table-wrap"><table><thead><tr><th>#</th><th>Player</th><th>Build</th><th>Honors</th><th>Score</th><th>Match Group</th><th></th></tr></thead><tbody id="playerRows"></tbody></table></div>
 </section>
@@ -218,6 +218,54 @@ function render(){
  <td><button class="btn danger" onclick="removePlayer(${i})">Delete</button></td></tr>`).join('');
  document.getElementById('stats').innerHTML=`<div class="stat"><b>${players.length}</b><span>Players</span></div><div class="stat"><b>${players.filter(p=>score(p)===3).length}</b><span>3 Honors</span></div><div class="stat"><b>${players.reduce((a,p)=>a+score(p),0)}</b><span>Honor Points</span></div>`;
 }
+
+function exportTournamentData(){
+ const lines=[];
+ const honorOrder=['Bronze','Silver','Golden'];
+ const roster=players.filter(p=>p && String(p.name||'').trim());
+ lines.push('PARTICIPANTS','');
+ roster.forEach((p,i)=>{
+   const honors=honorOrder.filter(h=>(p.honors||[]).includes(h));
+   const build=String(p.build||'').trim().replace(/\\s*\\/\\s*/g,'/');
+   lines.push(`${i+1}. ${String(p.name).trim()}(${build})${honors.length?honors.join(','):''}`);
+ });
+ lines.push('','MATCHMAKING','');
+ const roundNumbers=Object.keys(rounds||{}).map(Number).filter(n=>Number.isFinite(n)&&n>=1).sort((a,b)=>a-b);
+ if(!roundNumbers.length){
+   lines.push('No matchmaking generated yet.');
+ }else{
+   roundNumbers.forEach(r=>{
+     lines.push(`ROUND ${r}`);
+     const matches=rounds[r]||[];
+     if(!matches.length) lines.push('No matches in this round.');
+     matches.forEach((m,i)=>{
+       const status=m.winner?` | Winner: ${m.winner}`:' | Pending';
+       const division=divisionLabel(m.division);
+       if(m.type==='lucky'){
+         lines.push(`Match ${i+1} - ${division} - LUCKY CRITICAL: ${(m.players||[]).map(p=>p.name).join(' / ')}${status}`);
+       }else if(m.type==='blocked'){
+         lines.push(`Match ${i+1} - ${division} - BLOCKED: ${(m.players||[]).map(p=>p.name).join(' / ')}`);
+       }else if(m.type==='pending'){
+         lines.push(`Match ${i+1} - ${division} - ${m.p?.name||'TBD'} (waiting for opponent)`);
+       }else{
+         const label=m.type==='final'?'GRAND FINAL':(m.luckyFollowup?'REMAINING PLAYERS DUEL':'MATCH');
+         lines.push(`Match ${i+1} - ${division} - ${label}: ${m.p1?.name||'TBD'} vs ${m.p2?.name||'TBD'}${status}`);
+       }
+     });
+     lines.push('');
+   });
+ }
+ const blob=new Blob([lines.join('\r\n')],{type:'text/plain;charset=utf-8'});
+ const url=URL.createObjectURL(blob);
+ const link=document.createElement('a');
+ link.href=url;
+ link.download='pvp-tournament-export.txt';
+ document.body.appendChild(link);
+ link.click();
+ link.remove();
+ URL.revokeObjectURL(url);
+}
+
 function edit(i,k,v){players[i][k]=v;save();render();}
 function toggleHonor(i,h,on){players[i].honors=players[i].honors||[];if(on&&!players[i].honors.includes(h))players[i].honors.push(h);if(!on)players[i].honors=players[i].honors.filter(x=>x!==h);save();render();}
 function addPlayer(){players.push({name:'Novo Player',build:'',honors:[]});save();render();}
