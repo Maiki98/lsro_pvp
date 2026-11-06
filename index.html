@@ -232,13 +232,45 @@ function exportTournamentData(){
  const lines=[];
  const honorOrder=['Bronze','Silver','Golden'];
  const roster=players.filter(p=>p && String(p.name||'').trim());
+ const honorValue=p=>{
+   const h=p.honors||[];
+   // Higher honor tiers sort first; all three honors are at the top.
+   return (h.includes('Golden')?4:0)+(h.includes('Silver')?2:0)+(h.includes('Bronze')?1:0);
+ };
+ const normalizedBuild=p=>String(p.build||'').trim().replace(/\s*\/\s*/g,'/').replace(/\s+/g,' ').toLowerCase();
+ const exportDivision=(div,label)=>{
+   lines.push(label);
+   const divisionPlayers=roster.filter(p=>divisionOf(p)===div);
+   const buildOrder=[];
+   const buildMap=new Map();
+   divisionPlayers.forEach(p=>{
+     const key=normalizedBuild(p)||'unknown build';
+     if(!buildMap.has(key)){buildMap.set(key,[]);buildOrder.push(key);}
+     buildMap.get(key).push(p);
+   });
+   let number=0;
+   buildOrder.forEach((key,bi)=>{
+     const members=buildMap.get(key).slice().sort((a,b)=>
+       score(b)-score(a) || honorValue(b)-honorValue(a) ||
+       String(a.name).localeCompare(String(b.name))
+     );
+     members.forEach(p=>{
+       number++;
+       const honors=honorOrder.filter(h=>(p.honors||[]).includes(h));
+       const build=String(p.build||'').trim().replace(/\s*\/\s*/g,'/');
+       lines.push(`${number}. ${String(p.name).trim()}(${build})${honors.length?' '+honors.join(','):''}`);
+     });
+     if(bi<buildOrder.length-1) lines.push('');
+   });
+   if(!divisionPlayers.length) lines.push('No participants.');
+   lines.push('');
+ };
  lines.push('PARTICIPANTS','');
- roster.forEach((p,i)=>{
-   const honors=honorOrder.filter(h=>(p.honors||[]).includes(h));
-   const build=String(p.build||'').trim().replace(/\s*\/\s*/g,'/');
-   lines.push(`${i+1}. ${String(p.name).trim()}(${build})${honors.length?honors.join(','):''}`);
- });
- lines.push('','MATCHMAKING','');
+ // Each race has its own continuous numbering; build blocks are separated by a blank line.
+ exportDivision('EURO','EURO');
+ exportDivision('CH','CH');
+
+ lines.push('MATCHMAKING','');
  const roundNumbers=Object.keys(rounds||{}).map(Number).filter(n=>Number.isFinite(n)&&n>=1).sort((a,b)=>a-b);
  if(!roundNumbers.length){
    lines.push('No matchmaking generated yet.');
@@ -246,20 +278,24 @@ function exportTournamentData(){
    roundNumbers.forEach(r=>{
      lines.push(`PHASE ${r}`);
      const matches=rounds[r]||[];
-     if(!matches.length) lines.push('No matches in this phase.');
-     matches.forEach((m,i)=>{
-       const division=divisionLabel(m.division);
-       const status=m.winner?` | Winner: ${m.winner}`:' | Pending';
-       if(m.type==='lucky'){
-         lines.push(`Match ${i+1} - ${division} - LUCKY CRITICAL: ${(m.players||[]).map(p=>p.name).join(' / ')}${status}`);
-       }else if(m.type==='blocked'){
-         lines.push(`Match ${i+1} - ${division} - BLOCKED: ${(m.players||[]).map(p=>p.name).join(' / ')}`);
-       }else if(m.type==='pending'){
-         lines.push(`Match ${i+1} - ${division} - ${m.p?.name||'TBD'} (waiting for opponent)`);
-       }else{
-         const label=m.type==='final'?'GRAND FINAL':(m.luckyFollowup?'REMAINING PLAYERS DUEL':'MATCH');
-         lines.push(`Match ${i+1} - ${division} - ${label}: ${m.p1?.name||'TBD'} vs ${m.p2?.name||'TBD'}${status}`);
-       }
+     ['EURO','CH'].forEach(div=>{
+       const divisionMatches=matches.map((m,i)=>({m,i})).filter(x=>x.m.division===div);
+       if(!divisionMatches.length) return;
+       lines.push(div==='EURO'?'EURO — EUROPEAN TOURNAMENT':'CH — CHINESE TOURNAMENT');
+       divisionMatches.forEach(({m,i},index)=>{
+         const status=m.winner?` | Winner: ${m.winner}`:' | Pending';
+         if(m.type==='lucky'){
+           lines.push(`Match ${index+1} - LUCKY CRITICAL: ${(m.players||[]).map(p=>p.name).join(' / ')}${status}`);
+         }else if(m.type==='blocked'){
+           lines.push(`Match ${index+1} - BLOCKED: ${(m.players||[]).map(p=>p.name).join(' / ')}`);
+         }else if(m.type==='pending'){
+           lines.push(`Match ${index+1} - ${m.p?.name||'TBD'} (waiting for opponent)`);
+         }else{
+           const label=m.type==='final'?'GRAND FINAL':(m.luckyFollowup?'REMAINING PLAYERS DUEL':'MATCH');
+           lines.push(`Match ${index+1} - ${label}: ${m.p1?.name||'TBD'} vs ${m.p2?.name||'TBD'}${status}`);
+         }
+       });
+       lines.push('');
      });
      lines.push('');
    });
