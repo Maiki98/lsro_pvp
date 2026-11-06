@@ -63,6 +63,7 @@ body.is-authenticated #cloudLogoutButton{display:inline-block}
   </nav>
 </header>
 <main>
+<div id="cloudStatusBanner" class="card" style="display:none;margin-bottom:16px;border-color:#b88932;color:#f0c96a"></div>
 <section id="players" class="view active">
   <div class="toolbar"><div><h2>Players</h2><div class="note">Select 1, 2, or all 3 Honors. The score is calculated automatically.</div></div>
   <div><button class="btn" id="addPlayerButton" onclick="addPlayer()">+ Player</button><button class="btn" onclick="exportTournamentData()">Export data</button><button class="btn primary tournament-admin-only" onclick="generateBracket()">Generate / update tournament</button></div></div>
@@ -173,8 +174,17 @@ cloudAuth.onAuthStateChanged(async user=>{
   render();
  } catch(e){
   if(!cloudAuth.currentUser || cloudAuth.currentUser.uid !== user.uid) return;
-  login.style.display='flex'; const msg=document.getElementById('cloudLoginMessage');
-  msg.textContent='Signed in, but unable to access the database. Check the Firestore rules. ('+e.code+')';
+  // Authentication succeeded, but Firestore could not be read. Do not trap
+  // the user on the login screen: allow local use and show the real error.
+  // Shared synchronization remains disabled until Firestore access is fixed.
+  cloudReady=false;
+  const detail = e && (e.code || e.message) ? (e.code ? e.code + ': ' : '') + (e.message || '') : String(e);
+  console.error('Firestore connection failed:', e);
+  login.style.display='none';
+  const banner=document.getElementById('cloudStatusBanner');
+  banner.style.display='block';
+  banner.textContent='LOCAL MODE — login succeeded, but Firestore is unavailable. Changes on this device will NOT sync to other users. Error: ' + detail;
+  render();
  }
 });
 </script>
@@ -218,7 +228,6 @@ function render(){
  <td><button class="btn danger" onclick="removePlayer(${i})">Delete</button></td></tr>`).join('');
  document.getElementById('stats').innerHTML=`<div class="stat"><b>${players.length}</b><span>Players</span></div><div class="stat"><b>${players.filter(p=>score(p)===3).length}</b><span>3 Honors</span></div><div class="stat"><b>${players.reduce((a,p)=>a+score(p),0)}</b><span>Honor Points</span></div>`;
 }
-
 function exportTournamentData(){
  const lines=[];
  const honorOrder=['Bronze','Silver','Golden'];
@@ -226,7 +235,7 @@ function exportTournamentData(){
  lines.push('PARTICIPANTS','');
  roster.forEach((p,i)=>{
    const honors=honorOrder.filter(h=>(p.honors||[]).includes(h));
-   const build=String(p.build||'').trim().replace(/\\s*\\/\\s*/g,'/');
+   const build=String(p.build||'').trim().replace(/\s*\/\s*/g,'/');
    lines.push(`${i+1}. ${String(p.name).trim()}(${build})${honors.length?honors.join(','):''}`);
  });
  lines.push('','MATCHMAKING','');
@@ -239,8 +248,8 @@ function exportTournamentData(){
      const matches=rounds[r]||[];
      if(!matches.length) lines.push('No matches in this round.');
      matches.forEach((m,i)=>{
-       const status=m.winner?` | Winner: ${m.winner}`:' | Pending';
        const division=divisionLabel(m.division);
+       const status=m.winner?` | Winner: ${m.winner}`:' | Pending';
        if(m.type==='lucky'){
          lines.push(`Match ${i+1} - ${division} - LUCKY CRITICAL: ${(m.players||[]).map(p=>p.name).join(' / ')}${status}`);
        }else if(m.type==='blocked'){
@@ -255,7 +264,7 @@ function exportTournamentData(){
      lines.push('');
    });
  }
- const blob=new Blob([lines.join('\r\n')],{type:'text/plain;charset=utf-8'});
+ const blob=new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/plain;charset=utf-8'});
  const url=URL.createObjectURL(blob);
  const link=document.createElement('a');
  link.href=url;
@@ -263,7 +272,7 @@ function exportTournamentData(){
  document.body.appendChild(link);
  link.click();
  link.remove();
- URL.revokeObjectURL(url);
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 
 function edit(i,k,v){players[i][k]=v;save();render();}
